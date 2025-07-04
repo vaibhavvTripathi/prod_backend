@@ -1,0 +1,34 @@
+version: '3.8'
+services:
+  web:
+    image: my-app
+    build:
+      context: . 
+      dockerfile: Dockerfile 
+    ports:
+      - "6969:6969"
+    depends_on:
+      - redis
+      - mongo
+    environment:
+      - MODE=${MODE}
+      - PORT=${PORT}
+      - LOCAL_REDIS_URI=${LOCAL_REDIS_URI}
+      - JWT_KEY=${JWT_KEY}
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  redis-data:
+  mongo-data:
