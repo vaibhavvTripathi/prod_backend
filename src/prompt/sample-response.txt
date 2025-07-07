@@ -1,0 +1,416 @@
+That's an exciting request! I'd love to help you build something. For our first application, let's create a **modern and intuitive Task Manager**. This will allow us to demonstrate several key features and design principles.
+
+Imagine a clean, minimalist interface where you can easily add, mark as complete, and delete your daily tasks. We'll draw inspiration from popular productivity apps, focusing on clarity and ease of use.
+
+Here are the features we'll implement in this first version:
+*   A clean, responsive layout with a collapsible sidebar for navigation.
+*   The ability to add new tasks via an input field.
+*   Tasks will be displayed in a list.
+*   Each task will have a checkbox to mark it as complete/incomplete.
+*   Each task will have a button to delete it.
+*   Tasks will be persisted using local storage, so they don't disappear on refresh.
+
+For the visual style, we'll lean into the existing **Tailwind CSS and Shadcn/UI** setup. I'll maintain a professional and calming aesthetic, using subtle colors and animations for a smooth user experience. We'll use the default colors defined in `index.css` and `tailwind.config.ts`, ensuring a consistent look and feel.
+
+<codexity-code>
+First, let's set up the main application structure by modifying `src/App.tsx` to include the `SidebarProvider` and `SidebarTrigger` components. This will enable our collapsible sidebar.
+
+<codexity-write file_path="src/App.tsx">
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import TasksPage from "./pages/TasksPage"; // Renamed Index to TasksPage
+
+const queryClient = new QueryClient();
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <SidebarProvider>
+          <div className="min-h-screen flex w-full">
+            <AppSidebar />
+            <main className="flex-1 flex flex-col">
+              <SidebarTrigger />
+              <Routes>
+                <Route path="/" element={<TasksPage />} />
+              </Routes>
+            </main>
+          </div>
+        </SidebarProvider>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
+
+export default App;
+</codexity-write>
+
+Next, let's rename `src/pages/Index.tsx` to `src/pages/TasksPage.tsx` to better reflect its purpose as the main task management page.
+
+<codexity-rename original_file_path="src/pages/Index.tsx" new_file_path="src/pages/TasksPage.tsx" />
+
+Now, let's create the `src/components/app-sidebar.tsx` component, which will house our application's navigation.
+
+<codexity-write file_path="src/components/app-sidebar.tsx">
+import { Home, ListTodo, Settings } from "lucide-react";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
+
+const sidebarItems = [
+  {
+    title: "Tasks",
+    url: "/",
+    icon: ListTodo,
+  },
+  {
+    title: "Settings",
+    url: "/settings", // Placeholder for future settings page
+    icon: Settings,
+  },
+];
+
+export function AppSidebar() {
+  return (
+    <Sidebar>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {sidebarItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <a href={item.url} className="flex items-center space-x-2">
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+    </Sidebar>
+  );
+}
+</codexity-write>
+
+Let's define the `Task` interface and create a utility file `src/lib/tasks.ts` to manage task data using local storage. We'll use `@tanstack/react-query` for state management, making it easy to fetch, add, update, and delete tasks.
+
+<codexity-write file_path="src/lib/tasks.ts">
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+export interface Task {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+const STORAGE_KEY = "tasks";
+
+// Helper to get tasks from local storage
+const getTasksFromLocalStorage = (): Task[] => {
+  try {
+    const storedTasks = localStorage.getItem(STORAGE_KEY);
+    return storedTasks ? JSON.parse(storedTasks) : [];
+  } catch (error) {
+    console.error("Failed to parse tasks from localStorage:", error);
+    return [];
+  }
+};
+
+// Helper to save tasks to local storage
+const saveTasksToLocalStorage = (tasks: Task[]): void => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  } catch (error) {
+    console.error("Failed to save tasks to localStorage:", error);
+  }
+};
+
+// React Query hooks for tasks
+export const useTasks = () => {
+  return useQuery<Task[]>({
+    queryKey: ["tasks"],
+    queryFn: () => getTasksFromLocalStorage(),
+  });
+};
+
+export const useAddTask = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (text: string) => {
+      const currentTasks = getTasksFromLocalStorage();
+      const newTask: Task = {
+        id: Date.now().toString(),
+        text,
+        completed: false,
+      };
+      const updatedTasks = [...currentTasks, newTask];
+      saveTasksToLocalStorage(updatedTasks);
+      return newTask;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+    onError: (error) => {
+      console.error("Failed to add task:", error);
+    },
+  });
+};
+
+export const useUpdateTask = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (updatedTask: Task) => {
+      const currentTasks = getTasksFromLocalStorage();
+      const updatedTasks = currentTasks.map((task) =>
+        task.id === updatedTask.id ? updatedTask : task
+      );
+      saveTasksToLocalStorage(updatedTasks);
+      return updatedTask;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+    onError: (error) => {
+      console.error("Failed to update task:", error);
+    },
+  });
+};
+
+export const useDeleteTask = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (taskId: string) => {
+      const currentTasks = getTasksFromLocalStorage();
+      const updatedTasks = currentTasks.filter((task) => task.id !== taskId);
+      saveTasksToLocalStorage(updatedTasks);
+      return taskId; // Return the ID of the deleted task
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+    onError: (error) => {
+      console.error("Failed to delete task:", error);
+    },
+  });
+};
+</codexity-write>
+
+Now, let's create the `src/components/add-task-form.tsx` component for adding new tasks.
+
+<codexity-write file_path="src/components/add-task-form.tsx">
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useAddTask } from "@/lib/tasks";
+import { useToast } from "@/hooks/use-toast";
+
+export function AddTaskForm() {
+  const [taskText, setTaskText] = useState("");
+  const addTaskMutation = useAddTask();
+  const { toast } = useToast();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (taskText.trim()) {
+      addTaskMutation.mutate(taskText.trim(), {
+        onSuccess: () => {
+          setTaskText("");
+          toast({
+            title: "Task Added!",
+            description: "Your new task has been added to the list.",
+          });
+        },
+        onError: () => {
+          toast({
+            title: "Error",
+            description: "Failed to add task.",
+            variant: "destructive",
+          });
+        },
+      });
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="flex gap-2 w-full max-w-lg mx-auto">
+      <Input
+        type="text"
+        placeholder="Add a new task..."
+        value={taskText}
+        onChange={(e) => setTaskText(e.target.value)}
+        className="flex-grow"
+      />
+      <Button type="submit" disabled={addTaskMutation.isPending}>
+        {addTaskMutation.isPending ? "Adding..." : "Add Task"}
+      </Button>
+    </form>
+  );
+}
+</codexity-write>
+
+Next, we'll create the `src/components/task-item.tsx` component to display individual tasks and handle their completion and deletion.
+
+<codexity-write file_path="src/components/task-item.tsx">
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
+import { Task, useDeleteTask, useUpdateTask } from "@/lib/tasks";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+
+interface TaskItemProps {
+  task: Task;
+}
+
+export function TaskItem({ task }: TaskItemProps) {
+  const updateTaskMutation = useUpdateTask();
+  const deleteTaskMutation = useDeleteTask();
+  const { toast } = useToast();
+
+  const handleToggleComplete = () => {
+    updateTaskMutation.mutate(
+      { ...task, completed: !task.completed },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Task Updated!",
+            description: `Task "${task.text}" marked as ${task.completed ? "incomplete" : "complete"}.`,
+          });
+        },
+        onError: () => {
+          toast({
+            title: "Error",
+            description: "Failed to update task.",
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  };
+
+  const handleDelete = () => {
+    deleteTaskMutation.mutate(task.id, {
+      onSuccess: () => {
+        toast({
+          title: "Task Deleted!",
+          description: `Task "${task.text}" has been removed.`,
+        });
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to delete task.",
+          variant: "destructive",
+        });
+      },
+    });
+  };
+
+  return (
+    <div className="flex items-center justify-between p-4 bg-card rounded-lg shadow-sm mb-2">
+      <div className="flex items-center space-x-3">
+        <Checkbox
+          id={`task-${task.id}`}
+          checked={task.completed}
+          onCheckedChange={handleToggleComplete}
+        />
+        <label
+          htmlFor={`task-${task.id}`}
+          className={cn(
+            "text-lg font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+            task.completed ? "line-through text-muted-foreground" : ""
+          )}
+        >
+          {task.text}
+        </label>
+      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handleDelete}
+        disabled={deleteTaskMutation.isPending}
+        className="text-destructive hover:bg-destructive/10"
+      >
+        <Trash2 className="h-5 w-5" />
+      </Button>
+    </div>
+  );
+}
+</codexity-write>
+
+Finally, let's implement the `src/pages/TasksPage.tsx` to display the task list, the add task form, and integrate all the components.
+
+<codexity-write file_path="src/pages/TasksPage.tsx">
+import { AddTaskForm } from "@/components/add-task-form";
+import { TaskItem } from "@/components/task-item";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTasks } from "@/lib/tasks";
+
+const TasksPage = () => {
+  const { data: tasks, isLoading, isError } = useTasks();
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-6">
+        <p className="text-gray-500">Loading tasks...</p>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-6">
+        <p className="text-red-500">Error loading tasks.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 flex flex-col items-center p-6 bg-gray-50 dark:bg-background">
+      <Card className="w-full max-w-2xl">
+        <CardHeader>
+          <CardTitle className="text-3xl font-bold text-center">My Tasks</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6">
+            <AddTaskForm />
+          </div>
+          <div className="space-y-4">
+            {tasks && tasks.length > 0 ? (
+              tasks.map((task) => <TaskItem key={task.id} task={task} />)
+            ) : (
+              <p className="text-center text-muted-foreground">No tasks yet! Add one above.</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default TasksPage;
+</codexity-write>
+
+The `src/index.css` file is 101 lines long. After this current set of changes, if you plan to make further modifications to it, you might consider asking me to refactor it to improve maintainability.
+</codexity-code>
+
+We've set up a fully functional task manager with a responsive layout, task persistence, and an intuitive user interface, including a sidebar for navigation.

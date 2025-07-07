@@ -1,7 +1,5 @@
-version: '3.8'
 services:
   web:
-    image: my-app
     build:
       context: . 
       dockerfile: Dockerfile 
@@ -15,6 +13,7 @@ services:
       - PORT=${PORT}
       - LOCAL_REDIS_URI=${LOCAL_REDIS_URI}
       - JWT_KEY=${JWT_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
   redis:
     image: redis:latest
     ports:

@@ -1,4 +1,3 @@
-export function stripIndents(value: string): string;
 export function stripIndents(
   strings: TemplateStringsArray,
   ...values: any[]
