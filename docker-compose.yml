@@ -7,27 +7,34 @@ services:
       - "6969:6969"
     depends_on:
       - redis
-      - mongo
+      - postgres
     environment:
       - MODE=${MODE}
       - PORT=${PORT}
       - LOCAL_REDIS_URI=${LOCAL_REDIS_URI}
       - JWT_KEY=${JWT_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - LOCALDBURL=${LOCALDBURL}
+      - PRODDBURL=${PRODDBURL}
   redis:
     image: redis:latest
     ports:
       - "6379:6379"
     volumes:
       - redis-data:/data
-
-  mongo:
-    image: mongo:latest
+  postgres:
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: saasdb
     ports:
-      - "27017:27017"
+      - "5432:5432"
     volumes:
-      - mongo-data:/data/db
+      - postgres-data:/var/lib/postgresql/data
 
 volumes:
   redis-data:
   mongo-data:
+  postgres-data:

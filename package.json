@@ -4,7 +4,7 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "build": "npx tsc && cpx \"src/**/*.txt\" dist",
+    "build": "npx tsc && cpx \"src/**/*.txt\" dist && cpx \"src/**/*.json\" dist && cpx \"src/generated/prisma/**/*\" dist/generated/prisma",
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts"
   },
@@ -13,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "@google/genai": "^1.8.0",
+    "@prisma/client": "^6.11.1",
     "@types/bcrypt": "^5.0.2",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/socket.io": "^3.0.2",
@@ -23,8 +24,11 @@
     "ioredis": "^5.4.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.2.1",
+    "pg": "^8.16.3",
+    "prisma": "^6.11.1",
     "socket.io": "^4.7.5",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "google-auth-library": "^10.1.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
