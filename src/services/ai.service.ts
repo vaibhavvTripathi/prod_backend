@@ -1,4 +1,5 @@
 import { getGenAI } from "./genai.service";
+import { getMessagesByPromptId } from "./message.service";
 import fs from "fs";
 import path from "path";
 
@@ -12,12 +13,21 @@ interface ChatMessage {
 
 export const streamChatService = async (
   message: string,
+  promptId: number,
+  userId: number,
   onChunk: (chunk: string) => void
 ): Promise<void> => {
   try {
     const ai = getGenAI();
-    // TODO: Get chat history from Redis using sessionId
-    const history: ChatMessage[] = [];
+    
+    // Get chat history from message service
+    const messages = await getMessagesByPromptId({ promptId, userId });
+    
+    // Convert messages to ChatMessage format
+    const history: ChatMessage[] = messages.map((msg) => ({
+      role: msg.role,
+      content: msg.message,
+    }));
 
     const contents = [
       { role: "model", parts: [{ text: systemPrompt }] },
