@@ -63,5 +63,6 @@ export async function getUserById(userId: number | string) {
     email: user.email,
     first: user.first,
     lastname: user.lastname,
+    imgUrl: user.imageUrl,
   };
 }

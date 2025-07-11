@@ -3,6 +3,6 @@ import { handleGetExpoTemplate } from '../controllers/expoTemplate.controller';
 
 const router = Router();
 
-router.get('/template', handleGetExpoTemplate);
+router.post('/template', handleGetExpoTemplate);
 
 export default router; 

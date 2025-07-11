@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 const JWT_KEY = process.env.JWT_KEY;
 
 export interface AuthenticatedRequest extends Request {
-  user?: { userId: string };
+  user?: { userId: number };
 }
 
 export function authMiddleware(
@@ -24,8 +24,8 @@ export function authMiddleware(
   const token = authHeader.split(" ")[1];
   try {
     const decoded = jwt.verify(token, JWT_KEY) as { userId?: unknown };
-    if (typeof decoded.userId !== "string") {
-      return res.status(401).json({ error: "Invalid token payload: userId missing or not a string" });
+    if (typeof decoded.userId !== "number") {
+      return res.status(401).json({ error: "Invalid token payload: userId missing or not a number" });
     }
     req.user = { userId: decoded.userId };
     next();

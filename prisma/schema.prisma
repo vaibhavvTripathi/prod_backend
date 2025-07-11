@@ -21,6 +21,34 @@ model User {
   first     String
   lastname  String
   password  String? // Nullable for users who only use Google login
+  imageUrl  String? // Optional profile image URL
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  prompts   Prompt[]
+  messages  Message[]
+}
+
+model Prompt {
+  promptId    Int      @id @default(autoincrement())
+  promptText  String
+  createdDate DateTime @default(now())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  messages    Message[]
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  roomId     Int
+  message    String
+  role       Role
+  createTime DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+  prompt     Prompt   @relation(fields: [roomId], references: [promptId])
+}
+
+enum Role {
+  user
+  model
 }
